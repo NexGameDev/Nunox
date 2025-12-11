@@ -1,0 +1,160 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UNO 1v1 Animated</title>  <style>
+    body {
+      margin: 0;
+      background: #0f0f0f;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+    #game {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .deck, .discard {
+      width: 120px;
+      height: 180px;
+      border-radius: 12px;
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      box-shadow: 0 0 10px #000;
+    }
+    .deck {
+      left: calc(50% - 170px);
+      background: url('cards/back.png');
+      background-size: cover;
+    }
+    .discard {
+      right: calc(50% - 170px);
+      background: #222;
+      background-size: cover;
+    }
+    #player-hand, #ai-hand {
+      position: absolute;
+      display: flex;
+      gap: 10px;
+    }
+    #player-hand { bottom: 20px; }
+    #ai-hand { top: 20px; }
+
+    .card {
+      width: 110px;
+      height: 165px;
+      background-size: cover;
+      border-radius: 10px;
+      transition: transform 0.25s;
+      cursor: pointer;
+    }
+    .card:hover { transform: scale(1.1); }
+  </style>  <!-- SOUND --><audio id="sfx-draw" src="sounds/draw.mp3"></audio> <audio id="sfx-play" src="sounds/play.mp3"></audio> <audio id="sfx-error" src="sounds/error.mp3"></audio> <audio id="sfx-uno" src="sounds/uno.mp3"></audio>
+
+</head>
+<body><div id="game">
+  <div class="deck" id="deck"></div>
+  <div class="discard" id="discard"></div>  <div id="ai-hand"></div>
+  <div id="player-hand"></div>
+</div><script>
+// =============== SOUND ENGINE ===============
+const sfx = {
+  draw: document.getElementById('sfx-draw'),
+  play: document.getElementById('sfx-play'),
+  error: document.getElementById('sfx-error'),
+  uno: document.getElementById('sfx-uno')
+};
+function playSFX(name) {
+  sfx[name].currentTime = 0;
+  sfx[name].play();
+}
+
+// =============== SAMPLE CARD ENGINE ===============
+let deck = [];
+let player = [];
+let ai = [];
+let discard = [];
+
+function loadDeck() {
+  const colors = ['red','yellow','green','blue'];
+  const nums = [...Array(10).keys()];
+
+  colors.forEach(c => {
+    nums.forEach(n => deck.push({color:c, value:n, file:`cards/${c}_${n}.png`}));
+  });
+
+  deck.sort(() => Math.random() - 0.5);
+}
+
+function drawCard(target) {
+  if (deck.length === 0) return;
+  playSFX('draw');
+  target.push(deck.pop());
+  render();
+}
+
+function playCard(cardIndex) {
+  const card = player[cardIndex];
+  discard.push(card);
+  player.splice(cardIndex,1);
+  playSFX('play');
+  render();
+  setTimeout(aiTurn, 600);
+}
+
+function aiTurn(){
+  // AI normal pintar
+  let top = discard[discard.length-1];
+  let playable = ai.find(c => c.color === top.color || c.value === top.value);
+
+  if(playable){
+    ai.splice(ai.indexOf(playable),1);
+    discard.push(playable);
+    playSFX('play');
+  } else {
+    drawCard(ai);
+  }
+  render();
+}
+
+function render(){
+  const p = document.getElementById('player-hand');
+  const a = document.getElementById('ai-hand');
+  const dis = document.getElementById('discard');
+
+  p.innerHTML = '';
+  a.innerHTML = '';
+
+  player.forEach((c,i)=>{
+    let el = document.createElement('div');
+    el.className='card';
+    el.style.backgroundImage = `url(${c.file})`;
+    el.onclick = ()=>playCard(i);
+    p.appendChild(el);
+  });
+
+  ai.forEach(c=>{
+    let el = document.createElement('div');
+    el.className='card';
+    el.style.backgroundImage = 'url(cards/back.png)';
+    a.appendChild(el);
+  });
+
+  if(discard.length>0)
+    dis.style.backgroundImage = `url(${discard[discard.length-1].file})`;
+}
+
+// INIT
+loadDeck();
+drawCard(player); drawCard(ai);
+drawCard(player); drawCard(ai);
+drawCard(player); drawCard(ai);
+drawCard(player); drawCard(ai);
+drawCard(player); drawCard(ai);
+render();
+</script></body>
+</html>
