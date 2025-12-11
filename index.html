@@ -1,199 +1,117 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nunox - UNO 1v1</title>
-
-  <style>
-    body {
-      margin: 0;
-      background: #121212;
-      font-family: Arial, sans-serif;
-      overflow: hidden;
-    }
-
-    #game {
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-    }
-
-    .deck, .discard {
-      width: 120px;
-      height: 180px;
-      border-radius: 12px;
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      box-shadow: 0 0 10px #000;
-      background-size: cover;
-    }
-
-    .deck {
-      left: calc(50% - 170px);
-      background-image: url('back.png');
-    }
-
-    .discard {
-      right: calc(50% - 170px);
-      background-color: #222;
-    }
-
-    #player-hand, #ai-hand {
-      position: absolute;
-      display: flex;
-      gap: 10px;
-    }
-
-    #player-hand { bottom: 20px; }
-    #ai-hand { top: 20px; }
-
-    .card {
-      width: 110px;
-      height: 165px;
-      background-size: cover;
-      border-radius: 10px;
-      transition: transform 0.25s;
-      cursor: pointer;
-    }
-
-    .card:hover { transform: scale(1.1); }
-  </style>
-
-  <!-- ======= SOUND EFFECTS ======= -->
-  <audio id="snd-draw" src="draw.mp3"></audio>
-  <audio id="snd-play" src="play.mp3"></audio>
-  <audio id="snd-error" src="error.mp3"></audio>
-  <audio id="snd-uno" src="uno.mp3"></audio>
-  <audio id="snd-bgm" src="bgm.mp3" loop></audio>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Uno Simplified - Nunox</title>
+<style>
+  body { font-family: Arial; background: #2d2d2d; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+  #board { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
+  .hand { display: flex; gap: 10px; margin: 10px; }
+  .card { width: 60px; height: 90px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; cursor: pointer; transition: transform 0.3s; }
+  .card:hover { transform: scale(1.2); }
+  #pile { width: 60px; height: 90px; border-radius: 8px; background: #444; display: flex; align-items: center; justify-content: center; margin: 10px; font-weight: bold; font-size: 20px; }
+  #messages { margin-top: 10px; min-height: 20px; }
+</style>
 </head>
 <body>
 
-<div id="game">
-  <div id="deck" class="deck"></div>
-  <div id="discard" class="discard"></div>
+<h1>UNO Simplified - Nunox</h1>
 
-  <div id="ai-hand"></div>
-  <div id="player-hand"></div>
+<audio id="bgm" src="bgm.mp3" autoplay loop></audio>
+
+<div id="board">
+  <div>Computer's Hand: <span id="compCount"></span> cards</div>
+  <div id="pile">♠️</div>
+  <div class="hand" id="playerHand"></div>
 </div>
+<div id="messages"></div>
 
 <script>
-/* === SOUND SYSTEM === */
-const SFX = {
-  draw: document.getElementById("snd-draw"),
-  play: document.getElementById("snd-play"),
-  error: document.getElementById("snd-error"),
-  uno: document.getElementById("snd-uno"),
-  bgm: document.getElementById("snd-bgm")
-};
+  const colors = ['red','green','blue','yellow'];
+  const values = ['0','1','2','3','4','5','6','7','8','9'];
 
-function playSFX(type){
-  SFX[type].currentTime = 0;
-  SFX[type].play();
-}
+  let deck = [];
+  for(let c of colors){
+    for(let v of values){ deck.push({color:c,value:v}); }
+  }
+  deck = shuffle(deck);
 
-document.body.addEventListener("click", () => {
-  SFX.bgm.volume = 0.35;
-  SFX.bgm.play();
-}, { once: true });
+  function shuffle(array){
+    for(let i=array.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [array[i],array[j]]=[array[j],array[i]];
+    }
+    return array;
+  }
 
-/* === GAME LOGIC === */
-let deck = [];
-let player = [];
-let ai = [];
-let discard = [];
+  let playerHand=[], compHand=[];
+  for(let i=0;i<5;i++){
+    playerHand.push(deck.pop());
+    compHand.push(deck.pop());
+  }
 
-function loadDeck(){
-  const colors = ["red","yellow","green","blue"];
-  const nums = [...Array(10).keys()];
+  let pile = deck.pop();
+  updateBoard();
 
-  colors.forEach(c => {
-    nums.forEach(n => {
-      deck.push({
-        color: c,
-        value: n,
-        file: `${c}_${n}.png`
-      });
+  function renderHand(){
+    const handDiv=document.getElementById('playerHand');
+    handDiv.innerHTML='';
+    playerHand.forEach((card,index)=>{
+      const cDiv=document.createElement('div');
+      cDiv.className='card';
+      cDiv.style.background=card.color;
+      cDiv.textContent=card.value;
+      cDiv.onclick=()=> playerPlay(index);
+      handDiv.appendChild(cDiv);
     });
-  });
-
-  deck.sort(() => Math.random() - 0.5);
-}
-
-function drawCard(target){
-  if(deck.length === 0){
-    playSFX("error");
-    return;
   }
-  playSFX("draw");
-  target.push(deck.pop());
-  render();
-}
 
-function playCard(index){
-  let card = player[index];
-  discard.push(card);
-  player.splice(index, 1);
-  playSFX("play");
-
-  render();
-  setTimeout(aiTurn, 700);
-}
-
-function aiTurn(){
-  const top = discard[discard.length - 1];
-  const match = ai.find(c => c.color === top.color || c.value === top.value);
-
-  if(match){
-    ai.splice(ai.indexOf(match),1);
-    discard.push(match);
-    playSFX("play");
-  } else {
-    drawCard(ai);
+  function updateBoard(msg=''){
+    document.getElementById('pile').textContent=pile.value;
+    document.getElementById('pile').style.background=pile.color;
+    document.getElementById('compCount').textContent=compHand.length;
+    renderHand();
+    document.getElementById('messages').textContent=msg;
   }
-  render();
-}
 
-function render(){
-  const ph = document.getElementById("player-hand");
-  const ah = document.getElementById("ai-hand");
-  const dis = document.getElementById("discard");
-
-  ph.innerHTML = "";
-  ah.innerHTML = "";
-
-  player.forEach((c, i) => {
-    let el = document.createElement("div");
-    el.className = "card";
-    el.style.backgroundImage = `url('${c.file}')`;
-    el.onclick = () => playCard(i);
-    ph.appendChild(el);
-  });
-
-  ai.forEach(() => {
-    let el = document.createElement("div");
-    el.className = "card";
-    el.style.backgroundImage = `url('back.png')`;
-    ah.appendChild(el);
-  });
-
-  if(discard.length > 0){
-    dis.style.backgroundImage = `url('${discard[discard.length - 1].file}')`;
+  function playerPlay(idx){
+    const card = playerHand[idx];
+    if(card.color === pile.color || card.value === pile.value){
+      pile = playerHand.splice(idx,1)[0];
+      updateBoard("You played a card!");
+      if(playerHand.length===0){ updateBoard("You won!"); return; }
+      setTimeout(compTurn, 1000);
+    } else {
+      updateBoard("Card doesn't match pile!");
+    }
   }
-}
 
-/* === INIT === */
-loadDeck();
-for(let i=0;i<5;i++){
-  drawCard(player);
-  drawCard(ai);
-}
-render();
+  function compTurn(){
+    let played=false;
+    for(let i=0;i<compHand.length;i++){
+      const card=compHand[i];
+      if(card.color===pile.color || card.value===pile.value){
+        pile=compHand.splice(i,1)[0];
+        updateBoard("Computer played a card!");
+        played=true;
+        break;
+      }
+    }
+    if(!played){
+      while(deck.length){
+        const draw=deck.pop();
+        compHand.push(draw);
+        if(draw.color===pile.color || draw.value===pile.value){
+          pile=compHand.pop();
+          updateBoard("Computer drew and played a card!");
+          played=true;
+          break;
+        }
+      }
+    }
+    if(compHand.length===0){ updateBoard("Computer won!"); return; }
+  }
 </script>
 
 </body>
