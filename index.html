@@ -3,91 +3,140 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Uno Simplified - Nunox</title>
+<title>UNO Nunox - Playstore Style</title>
 <style>
-  body { font-family: Arial; background: #2d2d2d; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-  #board { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
-  .hand { display: flex; gap: 10px; margin: 10px; }
-  .card { width: 60px; height: 90px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; cursor: pointer; transition: transform 0.3s; }
-  .card:hover { transform: scale(1.2); }
-  #pile { width: 60px; height: 90px; border-radius: 8px; background: #444; display: flex; align-items: center; justify-content: center; margin: 10px; font-weight: bold; font-size: 20px; }
-  #messages { margin-top: 10px; min-height: 20px; }
+body {
+  font-family: Arial, sans-serif;
+  background: url('wood-texture.jpg') center/cover no-repeat;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+#board { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
+.hand { display: flex; gap: 10px; margin: 10px; }
+.card {
+  width: 60px; height: 90px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: bold; font-size: 18px;
+  cursor: pointer;
+  transition: transform 0.3s, top 0.3s, left 0.3s;
+  color: white;
+  box-shadow: 2px 2px 5px #000;
+}
+.card:hover { transform: scale(1.2); }
+#pile {
+  width: 60px; height: 90px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 10px;
+  font-weight: bold; font-size: 18px;
+  background: #444;
+  box-shadow: 2px 2px 5px #000;
+}
+#messages { margin-top: 10px; min-height: 20px; font-weight:bold;}
+button { margin-top: 10px; padding: 5px 10px; font-size: 16px; cursor: pointer; }
 </style>
 </head>
 <body>
 
-<h1>UNO Simplified - Nunox</h1>
-
+<h1>UNO Nunox</h1>
 <audio id="bgm" src="bgm.mp3" autoplay loop></audio>
 
 <div id="board">
   <div>Computer's Hand: <span id="compCount"></span> cards</div>
   <div id="pile">♠️</div>
   <div class="hand" id="playerHand"></div>
+  <button id="revealBtn">Reveal Your Cards</button>
 </div>
 <div id="messages"></div>
 
 <script>
-  const colors = ['red','green','blue','yellow'];
-  const values = ['0','1','2','3','4','5','6','7','8','9'];
+// Colors and values
+const colors = ['red','green','blue','yellow'];
+const values = ['0','1','2','3','4','5','6','7','8','9','Reverse','+2','Skip','+4'];
 
-  let deck = [];
-  for(let c of colors){
-    for(let v of values){ deck.push({color:c,value:v}); }
+// Generate deck
+let deck = [];
+for(let c of colors){
+  for(let v of values){
+    if(v === '+4') deck.push({color:'black',value:v});
+    else deck.push({color:c,value:v});
   }
-  deck = shuffle(deck);
+}
+deck = shuffle(deck);
 
-  function shuffle(array){
-    for(let i=array.length-1;i>0;i--){
-      const j=Math.floor(Math.random()*(i+1));
-      [array[i],array[j]]=[array[j],array[i]];
-    }
-    return array;
+// Shuffle function
+function shuffle(array){
+  for(let i=array.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [array[i],array[j]]=[array[j],array[i]];
   }
+  return array;
+}
 
-  let playerHand=[], compHand=[];
-  for(let i=0;i<5;i++){
-    playerHand.push(deck.pop());
-    compHand.push(deck.pop());
+// Hands
+let playerHand=[], compHand=[];
+for(let i=0;i<7;i++){
+  playerHand.push(deck.pop());
+  compHand.push(deck.pop());
+}
+
+// Pile
+let pile = deck.pop();
+let revealed=false;
+updateBoard("Click 'Reveal Your Cards' to see your cards");
+
+// Reveal button
+document.getElementById('revealBtn').onclick = ()=>{
+  revealed=true;
+  renderHand();
+  document.getElementById('messages').textContent='Your turn!';
+  document.getElementById('revealBtn').style.display='none';
+};
+
+// Render hand
+function renderHand(){
+  const handDiv=document.getElementById('playerHand');
+  handDiv.innerHTML='';
+  playerHand.forEach((card,index)=>{
+    const cDiv=document.createElement('div');
+    cDiv.className='card';
+    cDiv.style.background = revealed ? card.color : 'gray';
+    cDiv.textContent = revealed ? card.value : '?';
+    cDiv.onclick=()=>{ if(revealed) playerPlay(index); };
+    handDiv.appendChild(cDiv);
+  });
+}
+
+// Update board
+function updateBoard(msg=''){
+  document.getElementById('pile').textContent=pile.value;
+  document.getElementById('pile').style.background=pile.color;
+  document.getElementById('compCount').textContent=compHand.length;
+  renderHand();
+  document.getElementById('messages').textContent=msg;
+}
+
+// Player plays
+function playerPlay(idx){
+  const card = playerHand[idx];
+  if(card.color===pile.color || card.value===pile.value){
+    pile = playerHand.splice(idx,1)[0];
+    updateBoard("You played a card!");
+    if(playerHand.length===0){ updateBoard("You won!"); return; }
+    setTimeout(compTurn, 1000);
+  } else {
+    updateBoard("Card doesn't match pile!");
   }
+}
 
-  let pile = deck.pop();
-  updateBoard();
-
-  function renderHand(){
-    const handDiv=document.getElementById('playerHand');
-    handDiv.innerHTML='';
-    playerHand.forEach((card,index)=>{
-      const cDiv=document.createElement('div');
-      cDiv.className='card';
-      cDiv.style.background=card.color;
-      cDiv.textContent=card.value;
-      cDiv.onclick=()=> playerPlay(index);
-      handDiv.appendChild(cDiv);
-    });
-  }
-
-  function updateBoard(msg=''){
-    document.getElementById('pile').textContent=pile.value;
-    document.getElementById('pile').style.background=pile.color;
-    document.getElementById('compCount').textContent=compHand.length;
-    renderHand();
-    document.getElementById('messages').textContent=msg;
-  }
-
-  function playerPlay(idx){
-    const card = playerHand[idx];
-    if(card.color === pile.color || card.value === pile.value){
-      pile = playerHand.splice(idx,1)[0];
-      updateBoard("You played a card!");
-      if(playerHand.length===0){ updateBoard("You won!"); return; }
-      setTimeout(compTurn, 1000);
-    } else {
-      updateBoard("Card doesn't match pile!");
-    }
-  }
-
-  function compTurn(){
+// Computer turn
+function compTurn(){
+  document.getElementById('messages').textContent="Computer is thinking...";
+  setTimeout(()=>{
     let played=false;
     for(let i=0;i<compHand.length;i++){
       const card=compHand[i];
@@ -111,7 +160,8 @@
       }
     }
     if(compHand.length===0){ updateBoard("Computer won!"); return; }
-  }
+  },2000);
+}
 </script>
 
 </body>
