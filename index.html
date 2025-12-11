@@ -1,8 +1,11 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UNO 1v1 Animated</title>  <style>
+  <title>UNO 1v1 Animated</title>
+
+  <style>
     body {
       margin: 0;
       background: #0f0f0f;
@@ -53,15 +56,29 @@
       cursor: pointer;
     }
     .card:hover { transform: scale(1.1); }
-  </style>  <!-- SOUND --><audio id="sfx-draw" src="sounds/draw.mp3"></audio> <audio id="sfx-play" src="sounds/play.mp3"></audio> <audio id="sfx-error" src="sounds/error.mp3"></audio> <audio id="sfx-uno" src="sounds/uno.mp3"></audio>
+  </style>
+
+  <!-- ===== SOUND EFFECTS ===== -->
+  <audio id="sfx-draw" src="sounds/draw.mp3"></audio>
+  <audio id="sfx-play" src="sounds/play.mp3"></audio>
+  <audio id="sfx-error" src="sounds/error.mp3"></audio>
+  <audio id="sfx-uno" src="sounds/uno.mp3"></audio>
+
+  <!-- ===== BACKGROUND MUSIC (kamu upload sendiri file bgm.mp3) ===== -->
+  <audio id="bgm" src="sounds/bgm.mp3" loop></audio>
 
 </head>
-<body><div id="game">
+<body>
+
+<div id="game">
   <div class="deck" id="deck"></div>
-  <div class="discard" id="discard"></div>  <div id="ai-hand"></div>
+  <div class="discard" id="discard"></div>
+  <div id="ai-hand"></div>
   <div id="player-hand"></div>
-</div><script>
-// =============== SOUND ENGINE ===============
+</div>
+
+<script>
+// === SOUND ENGINE ===
 const sfx = {
   draw: document.getElementById('sfx-draw'),
   play: document.getElementById('sfx-play'),
@@ -73,7 +90,15 @@ function playSFX(name) {
   sfx[name].play();
 }
 
-// =============== SAMPLE CARD ENGINE ===============
+// === BACKGROUND MUSIC AUTO START AFTER FIRST CLICK ===
+const bgm = document.getElementById('bgm');
+bgm.volume = 0.35;
+
+document.body.addEventListener("click", () => {
+  bgm.play();
+}, { once: true });
+
+// === CARD GAME SYSTEM ===
 let deck = [];
 let player = [];
 let ai = [];
@@ -107,7 +132,6 @@ function playCard(cardIndex) {
 }
 
 function aiTurn(){
-  // AI normal pintar
   let top = discard[discard.length-1];
   let playable = ai.find(c => c.color === top.color || c.value === top.value);
 
@@ -156,5 +180,7 @@ drawCard(player); drawCard(ai);
 drawCard(player); drawCard(ai);
 drawCard(player); drawCard(ai);
 render();
-</script></body>
+</script>
+
+</body>
 </html>
