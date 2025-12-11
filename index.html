@@ -1,25 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UNO 1v1 Animated</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nunox - UNO 1v1</title>
 
   <style>
     body {
       margin: 0;
-      background: #0f0f0f;
+      background: #121212;
       font-family: Arial, sans-serif;
       overflow: hidden;
     }
+
     #game {
       width: 100vw;
       height: 100vh;
-      position: relative;
       display: flex;
       justify-content: center;
       align-items: center;
+      position: relative;
     }
+
     .deck, .discard {
       width: 120px;
       height: 180px;
@@ -28,22 +30,25 @@
       top: 50%;
       transform: translateY(-50%);
       box-shadow: 0 0 10px #000;
+      background-size: cover;
     }
+
     .deck {
       left: calc(50% - 170px);
-      background: url('cards/back.png');
-      background-size: cover;
+      background-image: url('back.png');
     }
+
     .discard {
       right: calc(50% - 170px);
-      background: #222;
-      background-size: cover;
+      background-color: #222;
     }
+
     #player-hand, #ai-hand {
       position: absolute;
       display: flex;
       gap: 10px;
     }
+
     #player-hand { bottom: 20px; }
     #ai-hand { top: 20px; }
 
@@ -55,90 +60,99 @@
       transition: transform 0.25s;
       cursor: pointer;
     }
+
     .card:hover { transform: scale(1.1); }
   </style>
 
-  <!-- ===== SOUND EFFECTS ===== -->
-  <audio id="sfx-draw" src="sounds/draw.mp3"></audio>
-  <audio id="sfx-play" src="sounds/play.mp3"></audio>
-  <audio id="sfx-error" src="sounds/error.mp3"></audio>
-  <audio id="sfx-uno" src="sounds/uno.mp3"></audio>
-
-  <!-- ===== BACKGROUND MUSIC (kamu upload sendiri file bgm.mp3) ===== -->
-  <audio id="bgm" src="sounds/bgm.mp3" loop></audio>
+  <!-- ======= SOUND EFFECTS ======= -->
+  <audio id="snd-draw" src="draw.mp3"></audio>
+  <audio id="snd-play" src="play.mp3"></audio>
+  <audio id="snd-error" src="error.mp3"></audio>
+  <audio id="snd-uno" src="uno.mp3"></audio>
+  <audio id="snd-bgm" src="bgm.mp3" loop></audio>
 
 </head>
 <body>
 
 <div id="game">
-  <div class="deck" id="deck"></div>
-  <div class="discard" id="discard"></div>
+  <div id="deck" class="deck"></div>
+  <div id="discard" class="discard"></div>
+
   <div id="ai-hand"></div>
   <div id="player-hand"></div>
 </div>
 
 <script>
-// === SOUND ENGINE ===
-const sfx = {
-  draw: document.getElementById('sfx-draw'),
-  play: document.getElementById('sfx-play'),
-  error: document.getElementById('sfx-error'),
-  uno: document.getElementById('sfx-uno')
+/* === SOUND SYSTEM === */
+const SFX = {
+  draw: document.getElementById("snd-draw"),
+  play: document.getElementById("snd-play"),
+  error: document.getElementById("snd-error"),
+  uno: document.getElementById("snd-uno"),
+  bgm: document.getElementById("snd-bgm")
 };
-function playSFX(name) {
-  sfx[name].currentTime = 0;
-  sfx[name].play();
+
+function playSFX(type){
+  SFX[type].currentTime = 0;
+  SFX[type].play();
 }
 
-// === BACKGROUND MUSIC AUTO START AFTER FIRST CLICK ===
-const bgm = document.getElementById('bgm');
-bgm.volume = 0.35;
-
 document.body.addEventListener("click", () => {
-  bgm.play();
+  SFX.bgm.volume = 0.35;
+  SFX.bgm.play();
 }, { once: true });
 
-// === CARD GAME SYSTEM ===
+/* === GAME LOGIC === */
 let deck = [];
 let player = [];
 let ai = [];
 let discard = [];
 
-function loadDeck() {
-  const colors = ['red','yellow','green','blue'];
+function loadDeck(){
+  const colors = ["red","yellow","green","blue"];
   const nums = [...Array(10).keys()];
 
   colors.forEach(c => {
-    nums.forEach(n => deck.push({color:c, value:n, file:`cards/${c}_${n}.png`}));
+    nums.forEach(n => {
+      deck.push({
+        color: c,
+        value: n,
+        file: `${c}_${n}.png`
+      });
+    });
   });
 
   deck.sort(() => Math.random() - 0.5);
 }
 
-function drawCard(target) {
-  if (deck.length === 0) return;
-  playSFX('draw');
+function drawCard(target){
+  if(deck.length === 0){
+    playSFX("error");
+    return;
+  }
+  playSFX("draw");
   target.push(deck.pop());
   render();
 }
 
-function playCard(cardIndex) {
-  const card = player[cardIndex];
+function playCard(index){
+  let card = player[index];
   discard.push(card);
-  player.splice(cardIndex,1);
-  playSFX('play');
+  player.splice(index, 1);
+  playSFX("play");
+
   render();
-  setTimeout(aiTurn, 600);
+  setTimeout(aiTurn, 700);
 }
 
 function aiTurn(){
-  let top = discard[discard.length-1];
-  let playable = ai.find(c => c.color === top.color || c.value === top.value);
+  const top = discard[discard.length - 1];
+  const match = ai.find(c => c.color === top.color || c.value === top.value);
 
-  if(playable){
-    ai.splice(ai.indexOf(playable),1);
-    discard.push(playable);
-    playSFX('play');
+  if(match){
+    ai.splice(ai.indexOf(match),1);
+    discard.push(match);
+    playSFX("play");
   } else {
     drawCard(ai);
   }
@@ -146,39 +160,39 @@ function aiTurn(){
 }
 
 function render(){
-  const p = document.getElementById('player-hand');
-  const a = document.getElementById('ai-hand');
-  const dis = document.getElementById('discard');
+  const ph = document.getElementById("player-hand");
+  const ah = document.getElementById("ai-hand");
+  const dis = document.getElementById("discard");
 
-  p.innerHTML = '';
-  a.innerHTML = '';
+  ph.innerHTML = "";
+  ah.innerHTML = "";
 
-  player.forEach((c,i)=>{
-    let el = document.createElement('div');
-    el.className='card';
-    el.style.backgroundImage = `url(${c.file})`;
-    el.onclick = ()=>playCard(i);
-    p.appendChild(el);
+  player.forEach((c, i) => {
+    let el = document.createElement("div");
+    el.className = "card";
+    el.style.backgroundImage = `url('${c.file}')`;
+    el.onclick = () => playCard(i);
+    ph.appendChild(el);
   });
 
-  ai.forEach(c=>{
-    let el = document.createElement('div');
-    el.className='card';
-    el.style.backgroundImage = 'url(cards/back.png)';
-    a.appendChild(el);
+  ai.forEach(() => {
+    let el = document.createElement("div");
+    el.className = "card";
+    el.style.backgroundImage = `url('back.png')`;
+    ah.appendChild(el);
   });
 
-  if(discard.length>0)
-    dis.style.backgroundImage = `url(${discard[discard.length-1].file})`;
+  if(discard.length > 0){
+    dis.style.backgroundImage = `url('${discard[discard.length - 1].file}')`;
+  }
 }
 
-// INIT
+/* === INIT === */
 loadDeck();
-drawCard(player); drawCard(ai);
-drawCard(player); drawCard(ai);
-drawCard(player); drawCard(ai);
-drawCard(player); drawCard(ai);
-drawCard(player); drawCard(ai);
+for(let i=0;i<5;i++){
+  drawCard(player);
+  drawCard(ai);
+}
 render();
 </script>
 
